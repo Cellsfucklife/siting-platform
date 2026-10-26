@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-dir="{{ dir|default('drawing') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ r.area_id }} · 测算结果</title>
+<link rel="stylesheet" href="/static/pico.min.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="{{ 'clean' if clean }}">
+<main class="container">
+
+  {% set fc = r.fuzzy_center %}
+  {% set cap = r.capacity %}
+  {% set cv = r.cross_validation %}
+  {% set lvl = r.verdict.level %}
+
+  <p class="back">
+    <a href="/">← 返回修改</a>
+    <button type="button" onclick="window.print()">打印 / 存 PDF</button>
+  </p>
+
+  <header class="hero">
+    <h1>{{ r.area_id }}</h1>
+    <p class="badges">
+      <span class="badge {{ lvl }}">
+        {% if lvl == 'high' %}高置信{% elif lvl == 'medium' %}中置信{% else %}低置信{% endif %}
+        {{ '%.2f'|format(r.verdict.score) }}
+      </span>
+      <span class="badge plain">{{ r.data_profile.label }}</span>
+      <span class="badge plain">{{ r.method_selection.used|length }} 个方法融合</span>
+      {% if fc.bimodal %}<span class="badge warn">检出多峰</span>{% endif %}
+      {% if cap.split_suggestion %}<span class="badge warn">建议拆分节点</span>{% endif %}
+      {% if cap.tier_boundary_risk %}<span class="badge warn">档位处于边界</span>{% endif %}
+    </p>
+  </header>
+
+  {% if warnings %}
+  <article class="flash warn">
+    <ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  </article>
+  {% endif %}
+
+  <section class="kpi-row">
+    <article class="kpi">
+      <span class="k">模糊选址中心</span>
+      <strong class="v coord">{{ '%.5f'|format(fc.lat) }}, {{ '%.5f'|format(fc.lng) }}</strong>
+      <small>μ = {{ '%.2f'|format(fc.mu_peak) }}</small>
+      {% if fc.local_xy %}
+      <small class="muted">相对坐标：x={{ fc.local_xy.x }}, y={{ fc.local_xy.y }}</small>
+      {% endif %}
+    </article>
+    <article class="kpi">
+      <span class="k">模糊半径（90%）</span>
+      <strong class="v">{{ '%.0f'|format(fc.radius_90_m) }} m</strong>
+      <small>68% 区间 {{ '%.0f'|format(fc.radius_68_m) }} m</small>
+    </article>
+    <article class="kpi">
+      <span class="k">容量档位</span>
+      <strong class="v">{{ cap.tier }}</strong>
+      <small>{{ cap.area_sqm }} m² · 储存单元 {{ cap.grids }}</small>
+    </article>
+    <article class="kpi">
+      <span class="k">人力 / 车辆 / 充电桩</span>
+      <strong class="v">{{ cap.staff }} / {{ cap.vehicles }} / {{ cap.chargers }}</strong>
+      <small>峰值在岗 · 利用率 {{ '%.2f'|format(cap.utilization) }}</small>
+    </article>
+  </section>
+
+  <section class="two-col">
+    <div>
+      <div class="map-wrap">{{ map_svg|safe }}</div>
+      {% if payload.candidates %}
+      <p class="maplist">
+        {% for c in payload.candidates %}
+        <span class="mi"><b>C{{ loop.index }}</b> {{ c.id }}{% if c.area_sqm %}
+          <em>{{ c.area_sqm|int }} m²</em>{% endif %}</span>
+        {% endfor %}
+      </p>
+      {% endif %}
+    </div>
+
+    <div>
+      <h2>容量配置</h2>
+      <table class="kv">
+        <tbody>
+          <tr><th>档位 / 类型</th><td>{{ cap.tier }} ·
+            {% if cap.kind == 'locker' %}智能柜{% else %}驿站{% endif %}</td></tr>
+          <tr><th>储存单元</th><td>{{ cap.grids }}（需 {{ '%.0f'|format(cap.grids_need) }}）</td></tr>
+          <tr><th>场地面积</th><td>{{ cap.area_sqm }} m²</td></tr>
+          <tr><th>人力</th><td>{{ cap.staff }}（分拣 {{ cap.staff_breakdown.sorting }} +
+            窗口 {{ cap.staff_breakdown.counter }}）</td></tr>
+          <tr><th>车辆 / 充电桩</th><td>{{ cap.vehicles }} / {{ cap.chargers }}</td></tr>
+          <tr><th>日件量 P50</th><td>{{ '%.0f'|format(cap.daily_demand_p50) }}</td></tr>
+          <tr><th>90% 区间</th><td>{{ '%.0f'|format(cap.daily_demand_ci90[0]) }} –
+            {{ '%.0f'|format(cap.daily_demand_ci90[1]) }}</td></tr>
+          <tr><th>峰值日</th><td>{{ '%.0f'|format(cap.peak_day_demand) }}
+            {% if cap.safety_margin and cap.safety_margin > 1.001 %}
+            <span class="hint">· 按 {{ '%.0f'|format(cap.peak_day_design) }} 设计
+              （波动缓冲 {{ '%+.0f'|format((cap.safety_margin - 1) * 100) }}%）</span>
+            {% endif %}</td></tr>
+          <tr><th>峰值小时</th><td>{{ '%.0f'|format(cap.peak_hour_demand) }} 件</td></tr>
+          <tr><th>利用率</th><td>{{ '%.2f'|format(cap.utilization) }}</td></tr>
+          <tr><th>档命中率</th><td>{{ '%.2f'|format(cap.tier_hit_rate) }}
+            {% if cap.tier_boundary_risk %}<span class="badge warn">边界</span>{% endif %}</td></tr>
+          <tr><th>排队（P等待 / 等待）</th><td>{{ '%.3f'|format(cap.queue.p_wait) }} /
+            {{ '%.1f'|format(cap.queue.wq_s) }} 秒</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if series %}
+  <h2>数据推演（点集 → 线性方程 → 抽象指标）</h2>
+  <div class="kpi-row three">
+    <article class="kpi">
+      <span class="k">统计口径 / 样本</span>
+      <strong class="v">{{ series.freq_label }}</strong>
+      <small>{{ series.n_records }} 条流水 · {{ series.n_periods }} 个周期 ·
+        跨度 {{ series.span_days }} 天</small>
+    </article>
+    <article class="kpi">
+      <span class="k">年增长率</span>
+      <strong class="v">{{ '%+.1f'|format(series.growth_per_year * 100) }}%</strong>
+      <small>常规日拟合 R² {{ series.r2 }} · 波动 CV {{ series.cv }}</small>
+    </article>
+    <article class="kpi">
+      <span class="k">峰值系数</span>
+      <strong class="v">{{ series.peak_factor }}</strong>
+      <small>本次采用 {{ series.peak_factor_used }}；
+        大促/异常 {{ series.n_promo }} 天，约 {{ series.promo_multiplier }} 倍</small>
+    </article>
+  </div>
+
+  <table class="kv">
+    <tbody>
+      <tr><th>拟合说明</th><td>{{ series.note }}</td></tr>
+      <tr><th>容量缓冲</th><td>按波动 CV {{ series.cv }} × 系数 {{ cap.cv_margin }} 放大
+        <strong>{{ '%+.0f'|format((cap.safety_margin - 1) * 100) }}%</strong> 配置</td></tr>
+    </tbody>
+  </table>
+
+  <div class="week-bars" role="img" aria-label="周内系数柱状图">
+    {% for i in range(7) %}
+    {% set f = series.weekday_factor[i] %}
+    <div class="wb">
+      <div class="wb-track"><i style="height: {{ [ (f / 1.3 * 100)|round|int, 100 ]|min }}%"></i></div>
+      <span>{{ '%.2f'|format(f) }}</span>
+      <em>{{ series.weekday_names[i][1:] }}</em>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="hint tight">周内系数（均值 1）：柱高按相对均值画，高于 1.00 的日子件量偏多。</p>
+
+  <details>
+    <summary>各小区：观测日均 → 设计年日均（{{ series.nodes|length }} 个）</summary>
+    <table>
+      <thead><tr><th>小区</th><th>观测日均</th><th>设计年日均</th><th>该序列 R²</th>
+        <th>年增长</th></tr></thead>
+      <tbody>
+      {% for pid, v in series.nodes.items() %}
+        <tr>
+          <td>{{ pid }}</td>
+          <td>{{ '%.1f'|format(v.qty_observed) }}</td>
+          <td>{{ '%.1f'|format(v.qty_projected) }}</td>
+          <td>{{ '%.2f'|format(v.fit.r2) }}</td>
+          <td>{{ '%+.1f'|format(v.fit.growth_per_year * 100) }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+
+  <h2>交叉验证</h2>
+  <div class="kpi-row three">
+    <article class="kpi">
+      <span class="k">方法间一致性</span>
+      <strong class="v">{{ '%.2f'|format(cv.methods.score) }}</strong>
+      <small>{{ cv.methods.verdict }} · 中心落区 {{ cv.methods.centers_in_fused_region }}
+        · 形状 {{ '%.2f'|format(cv.methods.shape_score) }}</small>
+    </article>
+    <article class="kpi">
+      <span class="k">实现间一致性</span>
+      <strong class="v">
+        {% if cv.implementations.summary.all_consistent %}
+          是（{{ cv.implementations.summary.consistent }}/{{ cv.implementations.summary.checked }}）
+        {% elif cv.implementations.summary.all_consistent is none %}未校验
+        {% else %}否{% endif %}
+      </strong>
+      <small>自研实现 vs 参考实现（spopt / SciPy / sklearn）</small>
+    </article>
+    <article class="kpi">
+      <span class="k">容量离散度</span>
+      <strong class="v">{{ cv.capacity.spread_ratio if cv.capacity.spread_ratio is not none else '—' }}</strong>
+      <small>{% if cv.capacity.consistent %}各方法容量需求一致{% else %}存在分歧，建议按保守上限{% endif %}</small>
+    </article>
+  </div>
+
+  {% if cv.methods.divergence %}
+  <article class="flash warn">
+    <strong>方法分歧</strong>
+    <ul>{% for d in cv.methods.divergence %}
+      <li>{{ d.method }}：偏离融合中心 {{ d.offset_m }} m —— {{ d.hint }}</li>
+    {% endfor %}</ul>
+  </article>
+  {% endif %}
+
+  <details>
+    <summary>方法证据（{{ r.per_method|length }} 个方法）</summary>
+    <table>
+      <thead><tr><th>方法</th><th>族</th><th>中心 (x, y) m</th><th>尺度 m</th>
+        <th>融合权重</th><th>偏离融合 m</th></tr></thead>
+      <tbody>
+      {% for k, m in r.per_method.items() %}
+        <tr>
+          <td>{{ k }}</td>
+          <td>{{ m.family }}</td>
+          <td>{{ '%.0f'|format(m.center_m[0]) }}, {{ '%.0f'|format(m.center_m[1]) }}</td>
+          <td>{{ '%.0f'|format(m.sigma_m[0]) }}</td>
+          <td>{{ '%.2f'|format(r.method_selection.weights[k]) }}</td>
+          <td>{{ '%.0f'|format(cv.methods.center_offset_to_fused_m[k]) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+
+  {% if r.recommendations %}
+  <details open>
+    <summary>建议补的数据（{{ r.recommendations|length }} 项）</summary>
+    <table>
+      <thead><tr><th>字段</th><th>预计收益</th><th>原因</th></tr></thead>
+      <tbody>
+      {% for rec in r.recommendations %}
+        <tr><td><code>{{ rec.field }}</code></td><td>{{ rec.expected_gain }}</td>
+          <td>{{ rec.reason }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+
+  <details>
+    <summary>原始结果 JSON</summary>
+    <pre><code>{{ raw_json }}</code></pre>
+  </details>
+
+  <footer class="foot">
+    耗时 {{ r.elapsed_ms }} ms · 数据画像 {{ r.data_profile.label }}
+    · 生成于本次请求，未落盘
+  </footer>
+</main>
+</body>
+</html>

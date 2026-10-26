@@ -1,0 +1,27 @@
+# --- 求解内核 ---
+numpy>=2.0
+scipy>=1.13
+pandas>=2.2
+scikit-learn>=1.5
+networkx>=3.3
+
+# --- 选址模型（参考实现）---
+spopt>=0.6              # PySAL: LSCM/MCLP/PMedian/PCenter
+pulp>=2.8               # MIP 建模 + CBC 求解器（CFLP 容量约束）
+shapely>=2.0
+geopandas>=1.0
+
+# --- Web 层 ---
+fastapi>=0.115
+uvicorn>=0.32
+jinja2>=3.1
+python-multipart>=0.0.9  # 表单提交 + 文件上传
+httpx>=0.27              # TestClient（测试用）
+openpyxl>=3.1            # Excel 读取与模板生成
+
+# --- 开发 ---
+pytest>=8.0
+
+# --- 可选：真实路网（需联网下载 OSM 数据，体积大）---
+# osmnx>=2.0
+# pandana>=0.7

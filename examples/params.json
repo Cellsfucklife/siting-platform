@@ -1,0 +1,18 @@
+{
+  "_说明": "一个片区的运行参数。前后加下划线的键是注释，不会被读取。",
+  "area_id": "BJ-CY-WJ-03",
+  "area_name": "朝阳区望京西片区（示例）",
+  "peak_factor": 1.6,
+  "service_radius_min": 10.0,
+  "access_speed_kmh": 12.0,
+  "self_pick_ratio": 0.7,
+  "service_time_s": 45.0,
+  "sort_per_staff_day": 1200.0,
+  "queue_wait_target_s": 180.0,
+  "queue_fail_prob": 0.1,
+  "turnover_per_grid": 1.8,
+  "vehicle_daily_capacity": 160.0,
+  "robot_share": 0.0,
+  "hour_profile": [0.004, 0.003, 0.002, 0.002, 0.002, 0.003, 0.008, 0.018, 0.032, 0.045, 0.052, 0.055, 0.062, 0.068, 0.07, 0.072, 0.078, 0.085, 0.08, 0.058, 0.038, 0.028, 0.018, 0.008],
+  "_hour_profile说明": "24 小时到达占比，来自京东分时段件量流水；无则删除该键，用内置城市曲线"
+}

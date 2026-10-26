@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+  },
+  "tasks": [
+    {
+      "label": "① 启动平台（http://127.0.0.1:8000）",
+      "type": "shell",
+      "command": "chcp 65001 > $null; ${workspaceFolder}/.venv/Scripts/python.exe -m webapp.app",
+      "isBackground": true,
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "② 跑全部测试",
+      "type": "shell",
+      "command": "chcp 65001 > $null; ${workspaceFolder}/.venv/Scripts/python.exe -m pytest -q tests",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "③ 渲染离线快照（不起服务看样式）",
+      "type": "shell",
+      "command": "chcp 65001 > $null; ${workspaceFolder}/.venv/Scripts/python.exe -m webapp.preview",
+      "problemMatcher": []
+    },
+    {
+      "label": "安装依赖到 .venv",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pip install -r requirements.txt",
+      "problemMatcher": []
+    }
+  ]
+}

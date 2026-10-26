@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "options": {
+    "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+  },
+  "configurations": [
+    {
+      "name": "平台（uvicorn 热重载）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["webapp.app:app", "--reload", "--port", "8000"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "jinja": true
+    },
+    {
+      "name": "平台（直接跑 app）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "webapp.app",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "渲染离线快照",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "webapp.preview",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Pytest: 全部",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-q", "tests"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
