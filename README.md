@@ -3,16 +3,28 @@
 一个两页式平台：**填表 → 结果**。输入几个数据端口（标注必填/选填），提交后
 给出该片区的「模糊选址中心」与「容量配置」。
 
+仓库：<https://github.com/Cellsfucklife/siting-platform>
+
 ---
 
 ## 1. 怎么跑
 
+克隆下来（或者直接下载 ZIP 解压），进目录：
+
 ```powershell
-cd E:\dsh_logistics\platform
+git clone https://github.com/Cellsfucklife/siting-platform.git
+cd siting-platform
+
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
 run_web.bat                 # 或：.\.venv\Scripts\python.exe -m webapp.app
 ```
 
 浏览器打开 <http://127.0.0.1:8000>。
+
+> Windows 上装 `spopt`/`pulp` 一般有预编译包；numpy 2.x + Python 3.11 以上最省事。
+> PuLP 自带求解器（CBC 在 wheel 里），不用另外装求解器。
 
 不需要起服务也能看样式（静态快照，CSS 内联）：
 
@@ -183,12 +195,10 @@ curl -X POST http://127.0.0.1:8000/api/solve -d "demand_points=A,39.99,116.47,28
 | `docs/实现逻辑.md` | 平台的实现逻辑：数据入口、画像、四个方法、融合、容量、验证、代码分布、已知限制 |
 | 本 README | 怎么跑、输入端口、Excel 规则、测试 |
 
-写作与设计规则原文已存到工作区的 `../skills/` 目录（含索引与落地记录）：
+页面样式与文案参考了下面这几份公开的设计/写作规范（都是 MIT，未随仓库分发，用时点进去自取）：
 
-- `skills/01-humanizer-英文-去AI味写作.SKILL.md` —— [blader/humanizer](https://github.com/blader/humanizer)（60,762★, MIT）
-- `skills/02-Humanizer-zh-中文-去AI味写作.SKILL.md` —— [op7418/Humanizer-zh](https://github.com/op7418/Humanizer-zh)（20,957★, MIT）
-- `skills/03-academic-humanizer-学术与申报语气.SKILL.md` —— [AIScientists-Dev/academic-humanizer](https://github.com/AIScientists-Dev/academic-humanizer)（2,666★, MIT）
-- `skills/04-hallmark-反AI味设计.SKILL.md` + `04b-hallmark-设计门槛细目.md` —— [Nutlope/hallmark](https://github.com/Nutlope/hallmark)（34,768★, MIT）
+- 去 AI 味的写作规范：[blader/humanizer](https://github.com/blader/humanizer)（60,762★, MIT）、[op7418/Humanizer-zh](https://github.com/op7418/Humanizer-zh)（20,957★, MIT）、[AIScientists-Dev/academic-humanizer](https://github.com/AIScientists-Dev/academic-humanizer)（2,666★, MIT）
+- 反 AI 味的设计门槛：[Nutlope/hallmark](https://github.com/Nutlope/hallmark)（34,768★, MIT）
 - [picocss/pico](https://github.com/picocss/pico)（16,833★, MIT）已收在 `webapp/static/pico.min.css`
 
 ## 8. 已知限制
